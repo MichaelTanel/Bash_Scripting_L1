@@ -3,7 +3,7 @@
 # Assumptions:
 # - Only count lines for .txt files
 # - Abbreviations only will be accepted for the month (see HELP_MESSAGE for further details)
-
+# - Files which will have their number of lines counted are located in the same folder as this script.
 
 # Valid cases:
 # - ./countlines.sh -o owner
@@ -17,16 +17,19 @@
 
 count_owner_files () {
     OWNER=$2
-    echo "Looking for files where the owner is: $OWNER"
+    echo "Looking for .txt files where the owner is: $OWNER"
 
     result=""
 
     # Loop through each text file in the directory (non-recursive).
-    for file in *.txt; do
-        # Get the owner of the file and compare it to the owner passed in.
-        if [ "$(stat -c '%U' "$file")" = "${OWNER}" ]; then
-            line_count=$(wc -l < $file)
-            result+="File: $file, Lines: $line_count\n"
+    for file in "$(pwd)"/*.txt; do
+        # Validates that the file exists.
+        if [ -f "$file" ]; then
+            # Get the owner of the file and compare it to the owner passed in.
+            if [ "$(stat -c '%U' "$file")" = "${OWNER}" ]; then
+                line_count=$(wc -l < $file)
+                result+="File: $file, Lines: $line_count\n"
+            fi
         fi
     done
     
@@ -83,19 +86,22 @@ count_month_files () {
     esac
 
     if [ "$NUMERIC_USER_MONTH" != "" ]; then
-        echo "Looking for files where the month is: $MONTH"
+        echo "Looking for .txt files where the month is: $MONTH"
         result=""
 
         # Loop through each text file in the directory (non-recursive).
-        for file in *.txt; do
-            # To get the file "birth" or "creation" information, use `stat -c '%w'``.
-            # Pipe that into awk which will split each line on the - and store the results in the `a` array.
-            # The month is stored at index 2, so a[2] is used to get the creation month.
-            creation_month=$(stat -c '%w' "$file" | awk '{split($0,a,"-"); print a[2]}')
+        for file in "$(pwd)"/*.txt; do
+            # Validates that the file exists.
+            if [ -f "$file" ]; then
+                # To get the file "birth" or "creation" information, use `stat -c '%w'``.
+                # Pipe that into awk which will split each line on the - and store the results in the `a` array.
+                # The month is stored at index 2, so a[2] is used to get the creation month.
+                creation_month=$(stat -c '%w' "$file" | awk '{split($0,a,"-"); print a[2]}')
 
-            if [ "$creation_month" = "${NUMERIC_USER_MONTH}" ]; then
-                line_count=$(wc -l < $file)
-                result+="File: $file, Lines: $line_count\n"
+                if [ "$creation_month" = "${NUMERIC_USER_MONTH}" ]; then
+                    line_count=$(wc -l < $file)
+                    result+="File: $file, Lines: $line_count\n"
+                fi
             fi
         done
         echo -e "$result"
